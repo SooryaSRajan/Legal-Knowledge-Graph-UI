@@ -12,11 +12,10 @@ neo4j.connect();
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
+
+app.use('/', express.static('public'));
 app.use('/query', query);
 
-app.get('/', (req, res) => {
-    res.send('Hello World!');
-});
 
 app.listen(port, () => {
     console.log(`Server on port ${port}`);
