@@ -11,6 +11,7 @@ router.get("/types", (req, res) => {
             return record._fields[0];
         });
         types.sort();
+        types.unshift("NONE");
         return res.json(types);
     });
 })
