@@ -1,19 +1,17 @@
 const neo4j = require('neo4j-driver')
 
-let session = null
+let driver = null
 
 exports.connect = () => {
-    if (session === null) {
-        const driver = neo4j.driver(process.env.NEO4j_URL,
-            neo4j.auth.basic(process.env.NEO4j_USERNAME,
-                process.env.NEO4j_PASSWORD))
-        driver.onCompleted = () => {
-            console.log('Connected to Neo4j')
-        }
-        session = driver.session()
+    if (driver === null) {
+        console.log('Connecting to Neo4j')
+        driver = neo4j.driver("neo4j://localhost:7687", neo4j.auth.basic("neo4j", "password"))
     }
 }
 
 exports.getSession = () => {
-    return session
+    if (driver === null) {
+        return null
+    }
+    return driver.session()
 }
