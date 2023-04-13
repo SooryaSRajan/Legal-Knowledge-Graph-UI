@@ -15,6 +15,11 @@
       </button>
     </div>
   </div>
+  <div v-else-if="searchNotFound" class="center-not-found-text">
+    No results found :/
+    <br/>
+    Try optimising your search parameters<span v-if="!tightCheckDisabled"> or disable <span class="tight-check-hint">Tight Check</span> for a more extensive search</span>.
+  </div>
 </template>
 
 <script>
@@ -25,6 +30,16 @@ export default {
       type: Array,
       required: true,
     },
+    searchNotFound: {
+      type: Boolean,
+      required: true,
+      default: false
+    },
+    tightCheckDisabled: {
+      type: Boolean,
+      required: true,
+      default: false
+    }
   },
 }
 </script>
@@ -33,6 +48,16 @@ export default {
 .search {
   padding-bottom: 50px;
   max-width: 100%;
+}
+
+.tight-check-hint{
+  color: #4e88c7;
+  font-weight: 600;
+}
+
+.center-not-found-text{
+  text-align: center;
+  width: 100%;
 }
 
 .result-card {

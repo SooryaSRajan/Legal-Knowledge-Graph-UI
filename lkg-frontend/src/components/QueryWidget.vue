@@ -23,7 +23,7 @@
         Enabling tight checking will force the query engine to get documents that match all the conditions.
       </div>
       <label class="switch">
-        <input type="checkbox" v-model="tightSearch">
+        <input type="checkbox" v-model="tightSearch" @change="$emit('tightCheckChanged', tightSearch)">
         <span class="slider"></span>
       </label>
     </div>

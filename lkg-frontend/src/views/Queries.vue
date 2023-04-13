@@ -8,11 +8,11 @@
       context are organized in such a way that they bring maximum number of similar cases together. Choose type of
       element and enter the value you're looking for.
     </div>
-    <QueryWidget :on-submit="onSubmit"/>
+    <QueryWidget :on-submit="onSubmit" @tight-check-changed="tightCheckDisabled = !$event"/>
     <div class="spinner-position">
       <SpinnerWidget v-if="loading"/>
     </div>
-    <SearchResults v-if="!loading" :documents="documents"/>
+    <SearchResults v-if="!loading" :documents="documents" :search-not-found="searchNotFound" :tight-check-disabled="tightCheckDisabled"/>
   </div>
 </template>
 
@@ -29,6 +29,8 @@ export default {
       query: [],
       documents: [],
       loading: false,
+      searchNotFound: false,
+      tightCheckDisabled: false
     }
   },
   methods: {
@@ -45,7 +47,13 @@ export default {
           .then(response => response.json())
           .then(data => {
             this.loading = false
-            this.documents = data
+            if (!data || data.length === 0) {
+              this.searchNotFound = true
+              this.documents = []
+            } else {
+              this.documents = data
+              this.searchNotFound = false
+            }
           })
     }
   }
