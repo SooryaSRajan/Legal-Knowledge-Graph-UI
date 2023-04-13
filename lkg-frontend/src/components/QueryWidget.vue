@@ -89,10 +89,9 @@ export default {
       }]
     },
     handleSubmit() {
-      alert(this.tightSearch)
       let errors = false
       this.query.map(q => {
-        q.error = q.value === "";
+        q.error = q.value.trim() === "";
         errors = errors || q.error
       })
 

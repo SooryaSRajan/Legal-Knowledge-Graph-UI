@@ -9,23 +9,32 @@
       element and enter the value you're looking for.
     </div>
     <QueryWidget :on-submit="onSubmit"/>
+    <div class="spinner-position">
+      <SpinnerWidget v-if="loading"/>
+    </div>
+    <SearchResults v-if="!loading" :documents="documents"/>
   </div>
 </template>
 
 <script>
 import QueryWidget from "@/components/QueryWidget";
+import SearchResults from "@/components/SearchResults";
+import SpinnerWidget from "@/components/Spinner";
 
 export default {
   name: "QueriesView",
-  components: {QueryWidget},
+  components: {SpinnerWidget, QueryWidget, SearchResults},
   data() {
     return {
       query: [],
+      documents: [],
+      loading: false,
     }
   },
   methods: {
     onSubmit(query) {
       this.query = query
+      this.loading = true
       fetch('/query/search', {
         method: 'POST',
         headers: {
@@ -34,7 +43,10 @@ export default {
         body: JSON.stringify(query)
       })
           .then(response => response.json())
-          .then(data => console.log(data))
+          .then(data => {
+            this.loading = false
+            this.documents = data
+          })
     }
   }
 }
@@ -56,6 +68,15 @@ export default {
   font-size: 1rem;
   text-align: start;
   margin-bottom: 20px;
+}
+
+
+.spinner-position {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 </style>

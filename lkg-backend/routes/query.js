@@ -27,25 +27,24 @@ router.post("/search", (req, res) => {
 
     let queryString = "";
 
-    if(tightSearch) {
+    if (tightSearch) {
         let count = 0;
-        //MATCH (e1:Entity)-[]->(s1:SubText)-[:SUBTEXT_OF]->(c:Case)
-        // MATCH (e2:Entity)-[]->(s2:SubText)-[:SUBTEXT_OF]->(c)
-        // WHERE apoc.text.levenshteinSimilarity(toLower(e1.name), toLower("Raveendran")) >= 0.7
-        // AND apoc.text.levenshteinSimilarity(toLower(e2.name), toLower("Delhi Transport Corporation")) >= 0.7
-        // AND apoc.text.levenshteinSimilarity(toLower(e2.name), toLower("Delhi Transport Corporation")) >= 0.7
-        // . . .
-        // RETURN c, e1, e2, s1, s2
         const matchParts = [];
         const whereParts = [];
         for (const param of query) {
             count++;
             const type = param.type;
-            const value = param.value;
+            const value = param.value.trim();
+
+            if (value === "") {
+                continue;
+            }
+
+            let apocQuery = `(apoc.text.levenshteinSimilarity(toLower(e${count}.name), toLower("${value}")) >= 0.7 OR e${count}.name CONTAINS "${value}")`;
             if (type === "NONE") {
-                whereParts.push(`apoc.text.levenshteinSimilarity(toLower(e${count}.name), toLower("${value}")) >= 0.7`);
+                whereParts.push(apocQuery);
             } else {
-                whereParts.push(`e${count}.type = "${type}" AND apoc.text.levenshteinSimilarity(toLower(e${count}.name), toLower("${value}")) >= 0.7`);
+                whereParts.push(`(e${count}.type = "${type}" AND ${apocQuery})`);
             }
             matchParts.push(`MATCH (e${count}:Entity)-[]->(s${count}:SubText)-[:SUBTEXT_OF]->(c)`);
         }
@@ -55,22 +54,23 @@ router.post("/search", (req, res) => {
         queryString = `${secondaryMatchPart} WHERE ${wherePart} RETURN c`;
         console.log(query);
 
-    }
-    else{
-        //MATCH (e:Entity)-[]->(s:SubText)-[:SUBTEXT_OF]->(c)
-        // WHERE apoc.text.levenshteinSimilarity(toLower(e.name), toLower("Raveendran")) >= 0.7
-        // OR apoc.text.levenshteinSimilarity(toLower(e.name), toLower("Delhi Transport Corporation")) >= 0.7
-        // RETURN e, s, c
+    } else {
         const matchPart = `MATCH (e:Entity)-[]->(s:SubText)-[:SUBTEXT_OF]->(c:Case)`;
         const whereParts = [];
 
         for (const param of query) {
             const type = param.type;
-            const value = param.value;
+            const value = param.value.trim();
+
+            if (value === "") {
+                continue;
+            }
+
+            let apocQuery = `(apoc.text.levenshteinSimilarity(toLower(e.name), toLower("${value}")) >= 0.7 OR e.name CONTAINS "${value}")`;
             if (type === "NONE") {
-                whereParts.push(`apoc.text.levenshteinSimilarity(toLower(e.name), toLower("${value}")) >= 0.7`);
+                whereParts.push(apocQuery);
             } else {
-                whereParts.push(`e.type = "${type}" AND apoc.text.levenshteinSimilarity(toLower(e.name), toLower("${value}")) >= 0.7`);
+                whereParts.push(`(e.type = "${type}" AND ${apocQuery}) `);
             }
         }
 
@@ -81,9 +81,20 @@ router.post("/search", (req, res) => {
 
 
     session.run(queryString).then((result) => {
-        const cases = result.records.map((record) => {
-            return record._fields[0];
+        let annotationIdSet = new Set();
+
+        const cases = []
+        result.records.forEach((record) => {
+            let caseObj = record._fields[0].properties;
+            caseObj.showMore = false;
+            let annotationId = caseObj.annotation_id;
+            if (!annotationIdSet.has(annotationId)) {
+                annotationIdSet.add(annotationId);
+                cases.push(caseObj);
+            }
+
         });
+
         console.log(cases)
         return res.json(cases);
     });
