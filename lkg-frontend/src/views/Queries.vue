@@ -8,26 +8,34 @@
       context are organized in such a way that they bring maximum number of similar cases together. Choose type of
       element and enter the value you're looking for.
     </div>
-    <QueryWidget @change="(query) => this.query = query"/>
-    {{query}}
+    <QueryWidget :on-submit="onSubmit"/>
   </div>
 </template>
 
 <script>
 import QueryWidget from "@/components/QueryWidget";
+
 export default {
   name: "QueriesView",
   components: {QueryWidget},
-  mounted() {
-
-  },
-  data (){
+  data() {
     return {
       query: [],
     }
   },
   methods: {
-
+    onSubmit(query) {
+      this.query = query
+      fetch('/query/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(query)
+      })
+          .then(response => response.json())
+          .then(data => console.log(data))
+    }
   }
 }
 </script>
