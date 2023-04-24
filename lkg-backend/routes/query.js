@@ -25,7 +25,7 @@ router.post("/searchForValues", (req, res) => {
         return res.status(500).json({message: "Neo4j connection error"});
     }
 
-    let queryString = "";
+    let queryString;
 
     if (tightSearch) {
         let count = 0;
@@ -47,10 +47,13 @@ router.post("/searchForValues", (req, res) => {
                 matchParts.push(`MATCH (e${count}:Entity {type: "${type}"})-[]->(s${count}:SubText)-[:SUBTEXT_OF]->(c)`);
             }
         }
-        const secondaryMatchPart = matchParts.join(" ");
-        const wherePart = whereParts.join(" AND ");
 
-        queryString = `${secondaryMatchPart} WHERE ${wherePart} RETURN c`;
+        const whereExistsParts = [];
+        for (let i = 0; i < whereParts.length; i++) {
+            whereExistsParts.push(`EXISTS { ${matchParts[i]} WHERE ${whereParts[i]} }`);
+        }
+
+        queryString = `MATCH (c) WHERE ${whereExistsParts.join(" AND ")} RETURN DISTINCT c`;
 
     } else {
         const matchPart = `MATCH (e:Entity)-[]->(s:SubText)-[:SUBTEXT_OF]->(c:Case)`;
@@ -72,7 +75,7 @@ router.post("/searchForValues", (req, res) => {
             }
         }
 
-        queryString = `${matchPart} WHERE ${whereParts.join(' OR ')} RETURN c`;
+        queryString = `${matchPart} WHERE ${whereParts.join(' OR ')} RETURN DISTINCT c`;
 
     }
 
@@ -118,7 +121,7 @@ router.post("/searchForSimilarResults", (req, res) => {
         wherePart = `WHERE (toLower(e.type) = toLower("${type}") AND (apoc.text.levenshteinSimilarity(toLower(e.name), toLower("${value}")) >= 0.7 OR toLower(e.name) CONTAINS toLower("${value}")))`;
     }
 
-    const queryString = `${matchPart} ${wherePart} RETURN c`;
+    const queryString = `${matchPart} ${wherePart} RETURN DISTINCT c`;
 
     session.run(queryString).then((result) => {
         let annotationIdSet = new Set();
@@ -141,7 +144,7 @@ router.post("/searchForSimilarResults", (req, res) => {
             return b.pagerank - a.pagerank;
         });
 
-        session.run(`MATCH (c:Case) WHERE c.community IN [${Array.from(communityIdSet).join(",")}] RETURN c`).then((result) => {
+        session.run(`MATCH (c:Case) WHERE c.community IN [${Array.from(communityIdSet).join(",")}] RETURN DISTINCT c`).then((result) => {
 
             const similarCases = [];
             result.records.forEach((record) => {
