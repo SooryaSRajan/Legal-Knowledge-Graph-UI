@@ -16,7 +16,7 @@ router.get("/types", (req, res) => {
     });
 })
 
-router.post("/search", (req, res) => {
+router.post("/searchForValues", (req, res) => {
     const session = require("../config/neo4j").getSession();
 
     const {query, tightSearch} = req.body;
@@ -103,5 +103,69 @@ router.post("/search", (req, res) => {
     });
 
 });
+
+router.post("/searchForSimilarResults", (req, res) => {
+    const session = require("../config/neo4j").getSession();
+
+    const query = req.body;
+    const type = query.type;
+    const value = query.value.trim();
+
+    const matchPart = `MATCH (e:Entity)-[]->(s:SubText)-[:SUBTEXT_OF]->(c:Case)`;
+    let wherePart = '';
+
+    if(type === "NONE") {
+        wherePart = `WHERE (apoc.text.levenshteinSimilarity(toLower(e.name), toLower("${value}")) >= 0.7 OR toLower(e.name) CONTAINS toLower("${value}"))`;
+    }
+    else {
+        wherePart = `WHERE (toLower(e.type) = toLower("${type}") AND (apoc.text.levenshteinSimilarity(toLower(e.name), toLower("${value}")) >= 0.7 OR toLower(e.name) CONTAINS toLower("${value}")))`;
+    }
+
+    const queryString = `${matchPart} ${wherePart} RETURN c`;
+
+    session.run(queryString).then((result) => {
+        let annotationIdSet = new Set();
+
+        const cases = []
+        const communityIdSet = new Set();
+        result.records.forEach((record) => {
+            let caseObj = record._fields[0].properties;
+            caseObj.showMore = false;
+            let annotationId = caseObj.annotation_id;
+            if (!annotationIdSet.has(annotationId)) {
+                annotationIdSet.add(annotationId);
+                cases.push(caseObj);
+                communityIdSet.add(caseObj.community);
+            }
+
+        });
+
+        session.run(`MATCH (c:Case) WHERE c.community IN [${Array.from(communityIdSet).join(",")}] RETURN c`).then((result) => {
+
+            const similarCases = [];
+            result.records.forEach((record) => {
+                let caseObj = record._fields[0].properties;
+                caseObj.showMore = false;
+                let annotationId = caseObj.annotation_id;
+                if (!annotationIdSet.has(annotationId)) {
+                    annotationIdSet.add(annotationId);
+                    similarCases.push(caseObj);
+                }
+            });
+
+
+            return res.json({cases: cases, similarCases: similarCases});
+        }).catch((error) => {
+            console.log(error);
+            return res.json({cases: cases, similarCases: []});
+        });
+
+    }).catch((error) => {
+        console.log(error);
+        return res.json({cases: [], similarCases: []});
+    });
+
+});
+
 
 module.exports = router;
