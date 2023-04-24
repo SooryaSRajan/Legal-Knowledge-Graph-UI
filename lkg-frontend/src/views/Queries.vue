@@ -71,10 +71,16 @@ export default {
           })
           .then(data => {
             console.log(data)
+            this.searchNotFound = data.cases.length === 0;
             this.documents = data.cases
             this.similarDocuments = data.similarCases
           })
     },
+  },
+  watch: {
+    activeTab() {
+      this.searchNotFound = false
+    }
   }
 }
 </script>

@@ -15,7 +15,7 @@
       </button>
     </div>
   </div>
-  <div v-else-if="searchNotFound && !searchResult" class="center-not-found-text">
+  <div v-else-if="searchNotFound && searchResult" class="center-not-found-text">
     No results found :/
     <br/>
     Try optimising your search parameters<span v-if="!tightCheckDisabled"> or disable <span class="tight-check-hint">Tight Check</span> for a more extensive search</span>.
