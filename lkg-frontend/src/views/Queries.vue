@@ -12,7 +12,8 @@
     <div class="spinner-position">
       <SpinnerWidget v-if="loading"/>
     </div>
-    <SearchResults v-if="!loading" :documents="documents" :search-not-found="searchNotFound" :tight-check-disabled="tightCheckDisabled"/>
+    <SearchResults v-if="!loading" :documents="documents" :search-not-found="searchNotFound"
+                   :tight-check-disabled="tightCheckDisabled"/>
   </div>
 </template>
 
@@ -45,16 +46,8 @@ export default {
         body: JSON.stringify(query)
       })
           .then(response => response.json())
-          .then(data => {
-            this.loading = false
-            if (!data || data.length === 0) {
-              this.searchNotFound = true
-              this.documents = []
-            } else {
-              this.documents = data
-              this.searchNotFound = false
-            }
-          })
+          .then(data => this.documents = data
+          )
     }
   }
 }

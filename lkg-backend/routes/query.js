@@ -40,11 +40,11 @@ router.post("/search", (req, res) => {
                 continue;
             }
 
-            let apocQuery = `(apoc.text.levenshteinSimilarity(toLower(e${count}.name), toLower("${value}")) >= 0.7 OR e${count}.name CONTAINS "${value}")`;
+            let apocQuery = `(apoc.text.levenshteinSimilarity(toLower(e${count}.name), toLower("${value}")) >= 0.7 OR toLower(e${count}.name) CONTAINS toLower("${value}"))`;
             if (type === "NONE") {
                 whereParts.push(apocQuery);
             } else {
-                whereParts.push(`(e${count}.type = "${type}" AND ${apocQuery})`);
+                whereParts.push(`(toLower(e${count}.type) = toLower("${type}") AND ${apocQuery})`);
             }
             matchParts.push(`MATCH (e${count}:Entity)-[]->(s${count}:SubText)-[:SUBTEXT_OF]->(c)`);
         }
@@ -66,11 +66,11 @@ router.post("/search", (req, res) => {
                 continue;
             }
 
-            let apocQuery = `(apoc.text.levenshteinSimilarity(toLower(e.name), toLower("${value}")) >= 0.7 OR e.name CONTAINS "${value}")`;
+            let apocQuery = `(apoc.text.levenshteinSimilarity(toLower(e.name), toLower("${value}")) >= 0.7 OR toLower(e.name) CONTAINS toLower("${value}"))`;
             if (type === "NONE") {
                 whereParts.push(apocQuery);
             } else {
-                whereParts.push(`(e.type = "${type}" AND ${apocQuery}) `);
+                whereParts.push(`(toLower(e.type) = toLower("${type}") AND ${apocQuery})`);
             }
         }
 
@@ -95,7 +95,10 @@ router.post("/search", (req, res) => {
 
         });
 
-        console.log(cases)
+        cases.sort((a, b) => {
+            return b.pagerank - a.pagerank;
+        });
+
         return res.json(cases);
     });
 
