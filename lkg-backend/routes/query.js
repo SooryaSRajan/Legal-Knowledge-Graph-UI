@@ -81,18 +81,12 @@ router.post("/searchForValues", (req, res) => {
 
 
     session.run(queryString).then((result) => {
-        let annotationIdSet = new Set();
 
         const cases = []
         result.records.forEach((record) => {
             let caseObj = record._fields[0].properties;
             caseObj.showMore = false;
-            let annotationId = caseObj.annotation_id;
-            if (!annotationIdSet.has(annotationId)) {
-                annotationIdSet.add(annotationId);
-                cases.push(caseObj);
-            }
-
+            cases.push(caseObj);
         });
 
         cases.sort((a, b) => {
@@ -114,10 +108,9 @@ router.post("/searchForSimilarResults", (req, res) => {
     const matchPart = `MATCH (e:Entity)-[]->(s:SubText)-[:SUBTEXT_OF]->(c:Case)`;
     let wherePart = '';
 
-    if(type === "NONE") {
+    if (type === "NONE") {
         wherePart = `WHERE (apoc.text.levenshteinSimilarity(toLower(e.name), toLower("${value}")) >= 0.7 OR toLower(e.name) CONTAINS toLower("${value}"))`;
-    }
-    else {
+    } else {
         wherePart = `WHERE (toLower(e.type) = toLower("${type}") AND (apoc.text.levenshteinSimilarity(toLower(e.name), toLower("${value}")) >= 0.7 OR toLower(e.name) CONTAINS toLower("${value}")))`;
     }
 
@@ -131,13 +124,9 @@ router.post("/searchForSimilarResults", (req, res) => {
         result.records.forEach((record) => {
             let caseObj = record._fields[0].properties;
             caseObj.showMore = false;
-            let annotationId = caseObj.annotation_id;
-            if (!annotationIdSet.has(annotationId)) {
-                annotationIdSet.add(annotationId);
-                cases.push(caseObj);
-                communityIdSet.add(caseObj.community);
-            }
-
+            communityIdSet.add(caseObj.community);
+            annotationIdSet.add(caseObj.annotation_id);
+            cases.push(caseObj);
         });
 
         cases.sort((a, b) => {
@@ -152,7 +141,6 @@ router.post("/searchForSimilarResults", (req, res) => {
                 caseObj.showMore = false;
                 let annotationId = caseObj.annotation_id;
                 if (!annotationIdSet.has(annotationId)) {
-                    annotationIdSet.add(annotationId);
                     similarCases.push(caseObj);
                 }
             });
@@ -160,7 +148,6 @@ router.post("/searchForSimilarResults", (req, res) => {
             similarCases.sort((a, b) => {
                 return b.pagerank - a.pagerank;
             });
-
 
             return res.json({cases: cases, similarCases: similarCases});
         }).catch((error) => {
