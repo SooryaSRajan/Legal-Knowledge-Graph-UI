@@ -72,8 +72,7 @@ router.post("/searchForValues", (req, res) => {
             }
         }
 
-        queryString = `${matchPart} WHERE ${whereParts.join(' OR ')} RETURN c, s, e`;
-        console.log(query);
+        queryString = `${matchPart} WHERE ${whereParts.join(' OR ')} RETURN c`;
 
     }
 
