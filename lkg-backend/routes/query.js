@@ -40,19 +40,17 @@ router.post("/searchForValues", (req, res) => {
                 continue;
             }
 
-            let apocQuery = `(apoc.text.levenshteinSimilarity(toLower(e${count}.name), toLower("${value}")) >= 0.7 OR toLower(e${count}.name) CONTAINS toLower("${value}"))`;
+            whereParts.push(`(apoc.text.levenshteinSimilarity(toLower(e${count}.name), toLower("${value}")) >= 0.7 OR toLower(e${count}.name) CONTAINS toLower("${value}"))`)
             if (type === "NONE") {
-                whereParts.push(apocQuery);
+                matchParts.push(`MATCH (e${count}:Entity)-[]->(s${count}:SubText)-[:SUBTEXT_OF]->(c)`);
             } else {
-                whereParts.push(`(toLower(e${count}.type) = toLower("${type}") AND ${apocQuery})`);
+                matchParts.push(`MATCH (e${count}:Entity {type: "${type}"})-[]->(s${count}:SubText)-[:SUBTEXT_OF]->(c)`);
             }
-            matchParts.push(`MATCH (e${count}:Entity)-[]->(s${count}:SubText)-[:SUBTEXT_OF]->(c)`);
         }
         const secondaryMatchPart = matchParts.join(" ");
         const wherePart = whereParts.join(" AND ");
 
         queryString = `${secondaryMatchPart} WHERE ${wherePart} RETURN c`;
-        console.log(query);
 
     } else {
         const matchPart = `MATCH (e:Entity)-[]->(s:SubText)-[:SUBTEXT_OF]->(c:Case)`;
@@ -99,7 +97,7 @@ router.post("/searchForValues", (req, res) => {
             return b.pagerank - a.pagerank;
         });
 
-        return res.json(cases);
+        return res.json({cases: cases, similarCases: []});
     });
 
 });
@@ -140,6 +138,10 @@ router.post("/searchForSimilarResults", (req, res) => {
 
         });
 
+        cases.sort((a, b) => {
+            return b.pagerank - a.pagerank;
+        });
+
         session.run(`MATCH (c:Case) WHERE c.community IN [${Array.from(communityIdSet).join(",")}] RETURN c`).then((result) => {
 
             const similarCases = [];
@@ -151,6 +153,10 @@ router.post("/searchForSimilarResults", (req, res) => {
                     annotationIdSet.add(annotationId);
                     similarCases.push(caseObj);
                 }
+            });
+
+            similarCases.sort((a, b) => {
+                return b.pagerank - a.pagerank;
             });
 
 

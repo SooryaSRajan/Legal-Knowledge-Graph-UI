@@ -36,7 +36,7 @@
 
 <script>
 export default {
-  name: "QueryWidget",
+  name: "SimilarTypeQueryWidget",
   mounted() {
     fetch('/query/types')
         .then(response => response.json())
@@ -99,7 +99,7 @@ export default {
         this.onSubmit({
           query: this.query,
           tightSearch: this.tightSearch
-        })
+        }, 'searchForValues')
     },
   },
 }

@@ -1,7 +1,7 @@
 <template>
   <div v-if="documents.length !== 0" class="search">
     <h1>
-      Query Results
+      {{searchResult ? "Search Results" : "Similar Results"}}
     </h1>
     <div class="result-card" v-for="(document, index) in documents" :key="index">
       <h3>
@@ -15,7 +15,7 @@
       </button>
     </div>
   </div>
-  <div v-else-if="searchNotFound" class="center-not-found-text">
+  <div v-else-if="searchNotFound && !searchResult" class="center-not-found-text">
     No results found :/
     <br/>
     Try optimising your search parameters<span v-if="!tightCheckDisabled"> or disable <span class="tight-check-hint">Tight Check</span> for a more extensive search</span>.
@@ -29,6 +29,12 @@ export default {
     documents: {
       type: Array,
       required: true,
+    },
+
+    searchResult: {
+      type: Boolean,
+      required: false,
+      default: false
     },
     searchNotFound: {
       type: Boolean,
