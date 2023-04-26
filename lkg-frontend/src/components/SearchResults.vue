@@ -1,7 +1,7 @@
 <template>
   <div v-if="documents.length !== 0" class="search">
     <h1>
-      {{searchResult ? "Search Results" : "Similar Results"}}
+      {{searchResult ? `Search Results (${documents.length})` : `Similar Results (${documents.length})`}}
     </h1>
     <div class="result-card" v-for="(document, index) in documents" :key="index">
       <h3>
@@ -90,6 +90,7 @@ h3 {
   font-size: 1rem;
   max-width: 100%;
   transition: ease-in-out 0.5s;
+  text-align: justify;
 }
 
 .text-show-more {
