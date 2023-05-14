@@ -162,5 +162,44 @@ router.post("/searchForSimilarResults", (req, res) => {
 
 });
 
+router.post("/categoryStatistics", (req, res) => {
+    const session = require("../config/neo4j").getSession();
+
+    const {type, matchRange, sameCaseOccurrence} = req.body;
+
+    if (!(matchRange >= 0.5 && matchRange <= 1)) {
+        return res.json({error: "Invalid match range"});
+    }
+
+    const queryString = `MATCH (e1:Entity {type: '${type}'})-[]->(s:SubText)-[:SUBTEXT_OF]->(c:Case), (e2:Entity {type: '${type}'})-[]->(s2:SubText)-[:SUBTEXT_OF]->(c2:Case) WHERE e1 <> e2 AND apoc.text.levenshteinSimilarity(e1.name, e2.name) >= ${matchRange} AND c.case_id = c2.case_id WITH e1, e2, c.case_id as caseId, apoc.text.levenshteinSimilarity(e1.name, e2.name) as similarity ORDER BY similarity DESC WITH similarity, COLLECT({name: e1.name, caseId: caseId, otherName: e2.name}) as pairs RETURN similarity, REDUCE(names=[], pair IN pairs | names + pair) as similar_names`
+    session.run(queryString).then((result) => {
+
+        const statistics = [];
+        result.records.forEach((record) => {
+            if (sameCaseOccurrence) {
+                statistics.push(record._fields[1]);
+            } else {
+                let similarNames = record._fields[1];
+                let caseIds = new Set();
+                let data = []
+
+                for (let i = 0; i < similarNames.length; i++) {
+                    if (!caseIds.has(similarNames[i].caseId)) {
+                        caseIds.add(similarNames[i].caseId);
+                        data.push(similarNames[i]);
+                    }
+                }
+                statistics.push(data);
+            }
+        });
+
+        return res.json({statistics: statistics});
+    }).catch((error) => {
+        console.log(error);
+        return res.json({error: error});
+    });
+
+});
+
 
 module.exports = router;
