@@ -50,13 +50,15 @@
         <button @click="handleSubmit" class="query-submit">Submit</button>
       </div>
     </div>
-    {{ response }}
+    <CanvasJSVueComponent :options="options" v-if="options.data[0].dataPoints.length > 0 ?? false"/>
   </div>
 </template>
 
 <script>
+import CanvasJSVueComponent from "@/assets/CanvasJSVueComponent";
 export default {
   name: "VisualizationView",
+  components: {CanvasJSVueComponent},
   mounted() {
     fetch('/query/types')
         .then(response => response.json())
@@ -68,8 +70,25 @@ export default {
       type: "CASE_NUMBER",
       range: 0.8,
       sameCaseOccurrence: false,
-      response: [],
       loading: false,
+      options: {
+        animationEnabled: true,
+        exportEnabled: true,
+        title:{
+          text: "Frequency analysis of entity group - " + this.type
+        },
+        axisX: {
+          labelTextAlign: "right"
+        },
+        axisY: {
+          title: "Frequency",
+        },
+        data: [{
+          type: "bar",
+          yValueFormatString: "#,##0.##",
+          dataPoints: []
+        }]
+      }
     }
   },
   methods: {
@@ -92,8 +111,16 @@ export default {
             return response.json()
           })
           .then(data => {
-            this.response = data
+            //TODO: Update the graph
             console.log(data)
+            let dataPoints = []
+            for(let i = 0; i < data.length; i++) {
+              //TODO: Add logic to convert response to data points
+              dataPoints.push({
+                label: data[i].label,
+                y: data[i].y
+              })
+            }
           })
           .catch(error => {
             this.loading = false

@@ -171,6 +171,7 @@ router.post("/categoryStatistics", (req, res) => {
         return res.json({error: "Invalid match range"});
     }
 
+    //TODO: Change query to group only values of a certain type.
     const queryString = `MATCH (e1:Entity {type: '${type}'})-[]->(s:SubText)-[:SUBTEXT_OF]->(c:Case), (e2:Entity {type: '${type}'})-[]->(s2:SubText)-[:SUBTEXT_OF]->(c2:Case) WHERE e1 <> e2 AND apoc.text.levenshteinSimilarity(e1.name, e2.name) >= ${matchRange} AND c.case_id = c2.case_id WITH e1, e2, c.case_id as caseId, apoc.text.levenshteinSimilarity(e1.name, e2.name) as similarity ORDER BY similarity DESC WITH similarity, COLLECT({name: e1.name, caseId: caseId, otherName: e2.name}) as pairs RETURN similarity, REDUCE(names=[], pair IN pairs | names + pair) as similar_names`
     session.run(queryString).then((result) => {
 
