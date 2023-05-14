@@ -32,12 +32,12 @@ export default {
 
 <style scoped>
 .switch-root{
-  width: 90px;
+  width: 100%;
   height: 45px;
   background-color: #dae7f1;
   border-radius: 5px;
   box-shadow: rgba(183, 180, 180, 0.16) 0 3px 6px, rgba(213, 184, 184, 0.23) 0 3px 6px;
-  padding: 5px;
+  padding: 1px;
   transition: all 0.2s ease-in-out;
   overflow: hidden;
   user-select: none;
