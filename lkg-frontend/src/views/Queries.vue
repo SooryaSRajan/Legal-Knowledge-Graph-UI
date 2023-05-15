@@ -106,6 +106,7 @@ export default {
 
 .spinner-position {
   margin-top: 40px;
+  margin-bottom: 50px;
   display: flex;
   justify-content: center;
   align-items: center;

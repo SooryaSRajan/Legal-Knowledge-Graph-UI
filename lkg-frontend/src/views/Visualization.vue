@@ -62,6 +62,9 @@
         <button @click="handleSubmit" class="query-submit">Submit</button>
       </div>
     </div>
+    <div class="spinner-position">
+      <SpinnerWidget v-if="loading"/>
+    </div>
     <Bar
         id="chart"
         :options="chartOptions"
@@ -74,12 +77,14 @@
 <script>
 import {Bar} from 'vue-chartjs'
 import {Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale} from 'chart.js'
+import SpinnerWidget from "@/components/Spinner";
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 export default {
   name: "VisualizationView",
   components: {
+    SpinnerWidget,
     Bar
   },
   mounted() {
@@ -115,6 +120,7 @@ export default {
         sameCaseOccurrence: this.sameCaseOccurrence,
         top50Only: this.top50Only
       }
+      this.chartData = {}
       this.loading = true
       fetch(`/query/categoryStatistics`, {
         method: 'POST',
@@ -370,6 +376,15 @@ input:checked + .slider:before {
   width: 100%;
   height: 100%;
   margin-top: 30px;
+}
+
+.spinner-position {
+  margin-top: 40px;
+  margin-bottom: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 </style>

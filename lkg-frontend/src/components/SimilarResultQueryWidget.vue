@@ -162,4 +162,16 @@ export default {
   flex: 1;
 }
 
+.query-reset:hover, .query-submit:hover {
+  background-color: #34495e;
+  transform: scale(1.01, 1.01);
+  cursor: pointer;
+}
+
+
+.input-error {
+  border: 1px solid red;
+  background-color: #ffcccc;
+}
+
 </style>
