@@ -41,7 +41,19 @@
           is part of the same case cluster.
         </div>
         <label class="switch">
-          <input type="checkbox" v-model="sameCaseOccurrence" @change="$emit('tightCheckChanged', sameCaseOccurrence)">
+          <input type="checkbox" v-model="sameCaseOccurrence">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="same-case-occurrence-check-wrapper">
+        <div>
+          View all results
+        </div>
+        <div class="same-case-occurrence-tight-tool-tip">
+          Disabling this will allow the query engine to return all the results instead of the top 50.
+        </div>
+        <label class="switch">
+          <input type="checkbox" v-model="top50Only">
           <span class="slider"></span>
         </label>
       </div>
@@ -50,15 +62,26 @@
         <button @click="handleSubmit" class="query-submit">Submit</button>
       </div>
     </div>
-    <CanvasJSVueComponent :options="options" v-if="options.data[0].dataPoints.length > 0 ?? false"/>
+    <Bar
+        id="chart"
+        :options="chartOptions"
+        :data="chartData"
+        v-if="Object.keys(chartData).length > 0"
+    />
   </div>
 </template>
 
 <script>
-import CanvasJSVueComponent from "@/assets/CanvasJSVueComponent";
+import {Bar} from 'vue-chartjs'
+import {Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale} from 'chart.js'
+
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
+
 export default {
   name: "VisualizationView",
-  components: {CanvasJSVueComponent},
+  components: {
+    Bar
+  },
   mounted() {
     fetch('/query/types')
         .then(response => response.json())
@@ -66,37 +89,31 @@ export default {
   },
   data() {
     return {
+      chartOptions: {
+        responsive: true
+      },
+      chartData: {},
       types: [],
       type: "CASE_NUMBER",
       range: 0.8,
       sameCaseOccurrence: false,
+      top50Only: true,
       loading: false,
-      options: {
-        animationEnabled: true,
-        exportEnabled: true,
-        title:{
-          text: "Frequency analysis of entity group - " + this.type
-        },
-        axisX: {
-          labelTextAlign: "right"
-        },
-        axisY: {
-          title: "Frequency",
-        },
-        data: [{
-          type: "bar",
-          yValueFormatString: "#,##0.##",
-          dataPoints: []
-        }]
-      }
+      styles: {
+        width: "100%",
+      },
     }
   },
   methods: {
+    randomColorGenerator() {
+      return '#' + (Math.random().toString(16) + '0000000').slice(2, 8);
+    },
     handleSubmit() {
       let query = {
         type: this.type,
         matchRange: this.range,
-        sameCaseOccurrence: this.sameCaseOccurrence
+        sameCaseOccurrence: this.sameCaseOccurrence,
+        top50Only: this.top50Only
       }
       this.loading = true
       fetch(`/query/categoryStatistics`, {
@@ -111,16 +128,7 @@ export default {
             return response.json()
           })
           .then(data => {
-            //TODO: Update the graph
-            console.log(data)
-            let dataPoints = []
-            for(let i = 0; i < data.length; i++) {
-              //TODO: Add logic to convert response to data points
-              dataPoints.push({
-                label: data[i].label,
-                y: data[i].y
-              })
-            }
+            this.chartData = data
           })
           .catch(error => {
             this.loading = false
@@ -131,6 +139,13 @@ export default {
       this.type = "CASE_NUMBER"
       this.range = 0.8
       this.sameCaseOccurrence = false
+      this.top50Only = true
+      this.chartData = {}
+    }
+  },
+  monitor: {
+    type() {
+      this.options.title.text = `Frequency analysis of entity group - ${this.type}`
     }
   },
   computed: {
@@ -349,6 +364,12 @@ input:checked + .slider:before {
   background-color: #34495e;
   transform: scale(1.01, 1.01);
   cursor: pointer;
+}
+
+#chart {
+  width: 100%;
+  height: 100%;
+  margin-top: 30px;
 }
 
 </style>

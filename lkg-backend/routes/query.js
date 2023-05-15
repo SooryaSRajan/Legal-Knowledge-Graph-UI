@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const stringSimilarity = require("string-similarity");
 
 router.get("/types", (req, res) => {
     const session = require("../config/neo4j").getSession();
@@ -165,42 +166,99 @@ router.post("/searchForSimilarResults", (req, res) => {
 router.post("/categoryStatistics", (req, res) => {
     const session = require("../config/neo4j").getSession();
 
-    const {type, matchRange, sameCaseOccurrence} = req.body;
+    const {type, matchRange, sameCaseOccurrence, top50Only} = req.body;
 
     if (!(matchRange >= 0.5 && matchRange <= 1)) {
         return res.json({error: "Invalid match range"});
     }
 
-    //TODO: Change query to group only values of a certain type.
-    const queryString = `MATCH (e1:Entity {type: '${type}'})-[]->(s:SubText)-[:SUBTEXT_OF]->(c:Case), (e2:Entity {type: '${type}'})-[]->(s2:SubText)-[:SUBTEXT_OF]->(c2:Case) WHERE e1 <> e2 AND apoc.text.levenshteinSimilarity(e1.name, e2.name) >= ${matchRange} AND c.case_id = c2.case_id WITH e1, e2, c.case_id as caseId, apoc.text.levenshteinSimilarity(e1.name, e2.name) as similarity ORDER BY similarity DESC WITH similarity, COLLECT({name: e1.name, caseId: caseId, otherName: e2.name}) as pairs RETURN similarity, REDUCE(names=[], pair IN pairs | names + pair) as similar_names`
+    const queryString = `MATCH (e:Entity {type: "${type}"})-[]->(s:SubText)-[:SUBTEXT_OF]->(c:Case) WITH e, COLLECT( ${sameCaseOccurrence ? "" : "DISTINCT"} {case_id: c.case_id}) AS connectedCases RETURN e.name, connectedCases`
     session.run(queryString).then((result) => {
-
-        const statistics = [];
+        let records = []
         result.records.forEach((record) => {
-            if (sameCaseOccurrence) {
-                statistics.push(record._fields[1]);
-            } else {
-                let similarNames = record._fields[1];
-                let caseIds = new Set();
-                let data = []
-
-                for (let i = 0; i < similarNames.length; i++) {
-                    if (!caseIds.has(similarNames[i].caseId)) {
-                        caseIds.add(similarNames[i].caseId);
-                        data.push(similarNames[i]);
-                    }
-                }
-                statistics.push(data);
-            }
+            const name = record._fields[0];
+            const connectedCases = record._fields[1];
+            records.push({name: name, connectedCases: connectedCases});
         });
-
-        return res.json({statistics: statistics});
+        if (matchRange >= 0.95) {
+            return res.json(buildChartData(records, type, top50Only));
+        }
+        return res.json(buildChartData(mergeSimilarNodes(records, matchRange), type, top50Only));
     }).catch((error) => {
         console.log(error);
         return res.json({error: error});
     });
 
 });
+
+
+function mergeSimilarNodes(records, accuracy) {
+    const mergedRecords = [];
+
+    for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        if (record) {
+            const mergedRecord = {...record};
+            const connectedCases = [...record.connectedCases];
+
+            for (let j = i + 1; j < records.length; j++) {
+                const compareRecord = records[j];
+                if (compareRecord && stringSimilarity.compareTwoStrings(record.name, compareRecord.name) >= accuracy) {
+                    connectedCases.push(...compareRecord.connectedCases);
+                    records.splice(j, 1);
+                    j--;
+
+                }
+            }
+
+            mergedRecord.connectedCases = connectedCases;
+            mergedRecords.push(mergedRecord);
+        }
+    }
+
+    return mergedRecords;
+}
+
+function buildChartData(records, group, top50Only) {
+
+    let chartData = {
+        labels: [],
+        datasets: [{
+            label: 'Frequency analysis of entity group - ' + group,
+            backgroundColor: [],
+            data: []
+        }]
+    }
+
+    records.forEach((record) => {
+        chartData.labels.push(record.name);
+        chartData.datasets[0].data.push(record.connectedCases.length);
+        chartData.datasets[0].backgroundColor.push(randomColorGenerator());
+    });
+
+    //sort chart data based on connectedCases.length
+    chartData.datasets[0].data.sort((a, b) => {
+        return b - a;
+    });
+
+    //if more than 50 records, only show top 50
+    if (top50Only && chartData.labels.length > 50) {
+        chartData.labels = chartData.labels.slice(0, 50);
+        chartData.datasets[0].data = chartData.datasets[0].data.slice(0, 50);
+        chartData.datasets[0].backgroundColor = chartData.datasets[0].backgroundColor.slice(0, 50);
+    }
+
+    chartData.datasets[0].label = chartData.datasets[0].label + `, ${
+        top50Only ? "Top" : "All"
+    } ${chartData.labels.length} results`;
+
+    return chartData;
+
+}
+
+function randomColorGenerator() {
+    return '#' + (Math.random().toString(16) + '0000000').slice(2, 8);
+}
 
 
 module.exports = router;
